@@ -306,12 +306,7 @@ void masked_pi(masked_uint64_t state[5][5]) {
         }
 }
 
- /**
-  * Apply the masked Pi step of Keccak.
-  *
-  * Pi rearranges lanes within the 5x5 grid using a predefined permutation.
-  * All shares of a lane are moved together to preserve masking validity.
-  */
+
 void masked_chi(masked_uint64_t out[5][5],
                 const masked_uint64_t in[5][5],
                 const uint64_t r[5][5][MASKING_N][MASKING_N]) {
