@@ -1,1 +1,1 @@
-../Core/Src/global_rng.c:5:10:get_random64	1
+../Core/Src/global_rng.c:12:10:get_random64	3

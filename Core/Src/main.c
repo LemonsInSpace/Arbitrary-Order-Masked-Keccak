@@ -79,12 +79,121 @@ int _write(int file, char *ptr, int len) {
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void print_hex(const char *label, const uint8_t *data, size_t len) {
-    printf("%s: ", label);
-    for (size_t i = 0; i < len; i++) {
-        printf("%02X", data[i]);
+
+static const uint8_t test_input[] = {'a', 'b', 'c'};
+
+#define SHAKE_OUTPUT_LEN 64
+
+static void print_hex_inline(const char *label, const uint8_t *data, size_t len) {
+    char buf[300] = {0};
+    size_t offset = 0;
+
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "%s: ", label);
+    for (size_t i = 0; i < len && offset < sizeof(buf) - 4; i++) {
+        offset += snprintf(buf + offset, sizeof(buf) - offset, "%02X", data[i]);
     }
-    printf("\n");
+
+    debug_log("%s", buf);
+}
+
+static void init_cycle_counter(void) {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    DWT->CYCCNT = 0;
+}
+
+
+void run_all_hash_tests(void) {
+    uint32_t start, end;
+
+    uint8_t out_224[28];
+    start = HAL_GetTick();
+    masked_sha3_224(out_224, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHA3-224", out_224, sizeof(out_224));
+    debug_log("Time: %lu ms\r\n", end - start);
+
+    uint8_t out_256[32];
+    start = HAL_GetTick();
+    masked_sha3_256(out_256, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHA3-256", out_256, sizeof(out_256));
+    debug_log("Time: %lu ms\r\n", end - start);
+
+    uint8_t out_384[48];
+    start = HAL_GetTick();
+    masked_sha3_384(out_384, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHA3-384", out_384, sizeof(out_384));
+    debug_log("Time: %lu ms\r\n", end - start);
+
+    uint8_t out_512[64];
+    start = HAL_GetTick();
+    masked_sha3_512(out_512, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHA3-512", out_512, sizeof(out_512));
+    debug_log("Time: %lu ms\r\n", end - start);
+
+    uint8_t out_shake128[SHAKE_OUTPUT_LEN];
+    start = HAL_GetTick();
+    masked_shake128(out_shake128, SHAKE_OUTPUT_LEN, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHAKE128 (64 bytes)", out_shake128, SHAKE_OUTPUT_LEN);
+    debug_log("Time: %lu ms\r\n", end - start);
+
+    uint8_t out_shake256[SHAKE_OUTPUT_LEN];
+    start = HAL_GetTick();
+    masked_shake256(out_shake256, SHAKE_OUTPUT_LEN, test_input, sizeof(test_input));
+    end = HAL_GetTick();
+    print_hex_inline("SHAKE256 (64 bytes)", out_shake256, SHAKE_OUTPUT_LEN);
+    debug_log("Time: %lu ms\r\n", end - start);
+}
+void run_keccak_benchmarks(void) {
+    init_cycle_counter();
+
+    uint32_t start, end;
+
+    uint8_t out_224[28];
+    DWT->CYCCNT = 0;
+    masked_sha3_224(out_224, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHA3-224", out_224, sizeof(out_224));
+    debug_log("Cycles: %lu\r\n", end);
+
+    uint8_t out_256[32];
+    DWT->CYCCNT = 0;
+    masked_sha3_256(out_256, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHA3-256", out_256, sizeof(out_256));
+    debug_log("Cycles: %lu\r\n", end);
+
+    uint8_t out_384[48];
+    DWT->CYCCNT = 0;
+    masked_sha3_384(out_384, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHA3-384", out_384, sizeof(out_384));
+    debug_log("Cycles: %lu\r\n", end);
+
+    uint8_t out_512[64];
+    DWT->CYCCNT = 0;
+    masked_sha3_512(out_512, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHA3-512", out_512, sizeof(out_512));
+    debug_log("Cycles: %lu\r\n", end);
+
+    uint8_t out_shake128[SHAKE_OUTPUT_LEN];
+    DWT->CYCCNT = 0;
+    masked_shake128(out_shake128, SHAKE_OUTPUT_LEN, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHAKE128", out_shake128, SHAKE_OUTPUT_LEN);
+    debug_log("Cycles: %lu\r\n", end);
+
+    uint8_t out_shake256[SHAKE_OUTPUT_LEN];
+    DWT->CYCCNT = 0;
+    masked_shake256(out_shake256, SHAKE_OUTPUT_LEN, test_input, sizeof(test_input));
+    end = DWT->CYCCNT;
+    print_hex_inline("SHAKE256", out_shake256, SHAKE_OUTPUT_LEN);
+    debug_log("Cycles: %lu\r\n", end);
 }
 
 /**
@@ -135,8 +244,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-
+	  run_all_hash_tests();
+	  run_keccak_benchmarks();
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
