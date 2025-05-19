@@ -42,8 +42,14 @@ void masked_keccak_sponge(uint8_t *output, size_t output_len,
 
     //Step 3: Final padded block with domain separation
     uint8_t block[rate];
-    memset(block, 0, rate);
-    memcpy(block, input + offset, input_len);
+    for (size_t i = 0; i < rate; ++i) {
+        block[i] = 0;
+    }
+
+    for (size_t i = 0; i < input_len; ++i) {
+        block[i] = input[offset + i];
+    }
+
     block[input_len] ^= domain_sep;   // Domain separation marker (e.g., 0x06 or 0x1F)
     block[rate - 1] ^= 0x80;          // Padding rule per Keccak spec
 

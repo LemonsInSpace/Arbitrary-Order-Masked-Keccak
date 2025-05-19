@@ -18,8 +18,8 @@
 void fill_random_matrix(uint64_t r[MASKING_N][MASKING_N]) {
     for (size_t i = 0; i < MASKING_N; i++) {
         for (size_t j = i + 1; j < MASKING_N; j++) {
-        	// Each r[i][j] must be a fresh 64-bit random value for secure masking.
-        	// get_random64() is expected to enforce validity and invoke error handling on failure.
+            // Each r[i][j] must be a fresh 64-bit random value for secure masking.
+            // get_random64() is expected to enforce validity and invoke error handling on failure.
             uint64_t val = get_random64();
             r[i][j] = val;
             r[j][i] = val;  // Fill symmetric entry
@@ -27,7 +27,11 @@ void fill_random_matrix(uint64_t r[MASKING_N][MASKING_N]) {
         r[i][i] = 0;  // Diagonal should be zero or ignored
     }
 
+#ifdef DEBUG_LOG_VERBOSE
+    debug_log("Randomness matrix filled for masked AND.\r\n");
+#endif
 }
+
 
 /**
  * Perform masked XOR between two values.
