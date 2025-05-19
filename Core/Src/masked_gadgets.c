@@ -18,12 +18,15 @@
 void fill_random_matrix(uint64_t r[MASKING_N][MASKING_N]) {
     for (size_t i = 0; i < MASKING_N; i++) {
         for (size_t j = i + 1; j < MASKING_N; j++) {
+        	// Each r[i][j] must be a fresh 64-bit random value for secure masking.
+        	// get_random64() is expected to enforce validity and invoke error handling on failure.
             uint64_t val = get_random64();
             r[i][j] = val;
             r[j][i] = val;  // Fill symmetric entry
         }
         r[i][i] = 0;  // Diagonal should be zero or ignored
     }
+
 }
 
 /**
@@ -55,6 +58,11 @@ void masked_xor(masked_uint64_t *out,
  * @param b Second masked operand
  * @param r Fresh randomness matrix r[i][j] per share-pair
  */
+// Cross-terms between shares: ISW masking requires each unique pair (i,j)
+// to contribute securely to the AND computation. This block is symmetric in i,j.
+// NOTE: Computational cost is independent of actual share values, which prevents
+// data-dependent timing variation.
+
 void masked_and(masked_uint64_t *out,
                 const masked_uint64_t *a,
                 const masked_uint64_t *b,
