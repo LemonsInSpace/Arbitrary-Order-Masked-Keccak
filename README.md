@@ -1,1 +1,16 @@
-This still uses things like memcpy etc - it hasnt been security verified and will be updated and optimised as I go on
+This hasn't been security verrified and is still being updated and optimised but it is on the surface correct
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I think.
