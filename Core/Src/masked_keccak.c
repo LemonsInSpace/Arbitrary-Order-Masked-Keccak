@@ -66,23 +66,21 @@ static const uint8_t keccak_rho_offsets[5][5] = {
 
 //Performs a circular left shift (rotate-left) of a 64-bit word by n bits.
 static inline uint64_t rol64(uint64_t x, unsigned int n) {
-    n %= 64;
-    return (x << n) | (x >> ((64 - n) % 64));
+	n &= 63;
+	return (x << n) | (x >> (64 - n));
+
 }
 
 void masked_value_set(masked_uint64_t *out, uint64_t value) {
     uint64_t acc = value;
 
-
+    // Generate MASKING_N - 1 random shares
     for (int i = 0; i < MASKING_N - 1; i++) {
-        uint32_t lo = 0, hi = 0;
-        	HAL_StatusTypeDef status1 = HAL_RNG_GenerateRandomNumber(&hrng, &lo);
-           HAL_StatusTypeDef status2 = HAL_RNG_GenerateRandomNumber(&hrng, &hi);
-
-        out->share[i] = ((uint64_t)hi << 32) | lo;
+        out->share[i] = get_random64();
         acc ^= out->share[i];
     }
 
+    // Last share ensures that XOR of all shares == value
     out->share[MASKING_N - 1] = acc;
 }
 
@@ -146,7 +144,10 @@ void masked_absorb(masked_uint64_t state[5][5], const uint8_t *input, size_t inp
 
     // Prepare a zeroed block and copy in remaining input
     uint8_t block[KECCAK_RATE] = {0};
-    memcpy(block, input + offset, input_len);
+    for (size_t i = 0; i < input_len; ++i) {
+        block[i] = input[offset + i];
+    }
+
 
     // Apply padding: 0x06 marks domain separation, 0x80 sets the final bit
     block[input_len] ^= 0x06;
@@ -286,7 +287,7 @@ void masked_rho(masked_uint64_t state[5][5]) {
  *
  * Pi rearranges lanes within the 5x5 grid using a predefined permutation.
  * All shares of a lane are moved together to preserve masking validity.
- */c
+ */
 void masked_pi(masked_uint64_t state[5][5]) {
     masked_uint64_t tmp[5][5];
 
