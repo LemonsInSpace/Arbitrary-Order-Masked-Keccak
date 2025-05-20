@@ -244,7 +244,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  run_all_hash_tests();
+	 // run_all_hash_tests();
 	  run_keccak_benchmarks();
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();

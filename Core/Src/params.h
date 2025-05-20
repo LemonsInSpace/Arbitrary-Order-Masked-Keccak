@@ -8,7 +8,9 @@
 #define MAX_ORDER 10      // Optional upper bound for static arrays, sanity checks, etc.
 
 #define NROUNDS 24
-#define MASKING_N (MASKING_ORDER + 1)
+#define MASKING_N_VAL (MASKING_ORDER + 1)
+#define MASKING_N MASKING_N_VAL
+
 
 //  Keccak/SHAKE rate constants
 #define KECCAK_RATE 168

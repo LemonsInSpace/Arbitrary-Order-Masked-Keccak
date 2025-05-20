@@ -6,5 +6,5 @@
 // Declare hrng as external so other files can use it
 extern RNG_HandleTypeDef hrng;
 
-
+uint64_t get_random64(void);
 #endif
