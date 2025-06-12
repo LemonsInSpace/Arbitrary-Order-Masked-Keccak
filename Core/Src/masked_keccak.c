@@ -3,6 +3,7 @@
 #include "stm32f4xx_hal.h"
 #include "debug_log.h"
 #include "params.h"
+#include "global_rng.h"
 /*
  * Keccak-F[1600] — Masked Round Transformations Summary
 
@@ -33,6 +34,14 @@ extern RNG_HandleTypeDef hrng;
 
 
 //======Helper Methods======
+
+/**
+ * Fast rotate-left operation on 64-bit values.
+ *
+ * Used in Keccak's Rho step to shift each lane by a fixed offset.
+ * Compiles down to a single `ROR` or `LSL/LSR` pair when `n` is constant.
+ */
+#define ROL64(x, n) (((x) << (n)) | ((x) >> (64 - (n))))
 
 //64-bit constants used in the Iota step to inject round-dependent asymmetry
 //Without Iota, Keccak's permutation would be invariant under global XOR shifts
@@ -71,6 +80,47 @@ static inline uint64_t rol64(uint64_t x, unsigned int n) {
 
 }
 
+#if MASKING_ORDER == 0
+void masked_value_set(masked_uint64_t *out, uint64_t value) {
+    out->share[0] = value;
+}
+#elif MASKING_ORDER == 1
+void masked_value_set(masked_uint64_t *out, uint64_t value) {
+    uint64_t r0 = get_random64();
+    out->share[0] = r0;
+    out->share[1] = value ^ r0;
+}
+#elif MASKING_ORDER == 2
+void masked_value_set(masked_uint64_t *out, uint64_t value) {
+    uint64_t r0 = get_random64();
+    uint64_t r1 = get_random64();
+    out->share[0] = r0;
+    out->share[1] = r1;
+    out->share[2] = value ^ r0 ^ r1;
+}
+#elif MASKING_ORDER == 3
+void masked_value_set(masked_uint64_t *out, uint64_t value) {
+    uint64_t r0 = get_random64();
+    uint64_t r1 = get_random64();
+    uint64_t r2 = get_random64();
+    out->share[0] = r0;
+    out->share[1] = r1;
+    out->share[2] = r2;
+    out->share[3] = value ^ r0 ^ r1 ^ r2;
+}
+#elif MASKING_ORDER == 4
+void masked_value_set(masked_uint64_t *out, uint64_t value) {
+    uint64_t r0 = get_random64();
+    uint64_t r1 = get_random64();
+    uint64_t r2 = get_random64();
+    uint64_t r3 = get_random64();
+    out->share[0] = r0;
+    out->share[1] = r1;
+    out->share[2] = r2;
+    out->share[3] = r3;
+    out->share[4] = value ^ r0 ^ r1 ^ r2 ^ r3;
+}
+#else
 void masked_value_set(masked_uint64_t *out, uint64_t value) {
     uint64_t acc = value;
 
@@ -83,7 +133,7 @@ void masked_value_set(masked_uint64_t *out, uint64_t value) {
     // Last share ensures that XOR of all shares == value
     out->share[MASKING_N - 1] = acc;
 }
-
+#endif
 //======Sponge Phases======
 
 /**
@@ -273,10 +323,31 @@ void masked_rho(masked_uint64_t state[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
             uint8_t r = keccak_rho_offsets[x][y];
-            for (int i = 0; i < MASKING_N; i++) {
-                uint64_t value = state[x][y].share[i];
-                state[x][y].share[i] = rol64(value, r);
-            }
+			#if MASKING_N == 1
+						state[x][y].share[0] = ROL64(state[x][y].share[0], r);
+			#elif MASKING_N == 2
+						state[x][y].share[0] = ROL64(state[x][y].share[0], r);
+						state[x][y].share[1] = ROL64(state[x][y].share[1], r);
+			#elif MASKING_N == 3
+						state[x][y].share[0] = ROL64(state[x][y].share[0], r);
+						state[x][y].share[1] = ROL64(state[x][y].share[1], r);
+						state[x][y].share[2] = ROL64(state[x][y].share[2], r);
+			#elif MASKING_N == 4
+						state[x][y].share[0] = ROL64(state[x][y].share[0], r);
+						state[x][y].share[1] = ROL64(state[x][y].share[1], r);
+						state[x][y].share[2] = ROL64(state[x][y].share[2], r);
+						state[x][y].share[3] = ROL64(state[x][y].share[3], r);
+			#elif MASKING_N == 5
+						state[x][y].share[0] = ROL64(state[x][y].share[0], r);
+						state[x][y].share[1] = ROL64(state[x][y].share[1], r);
+						state[x][y].share[2] = ROL64(state[x][y].share[2], r);
+						state[x][y].share[3] = ROL64(state[x][y].share[3], r);
+						state[x][y].share[3] = ROL64(state[x][y].share[4], r);
+			#else
+						for (int i = 0; i < MASKING_N; i++) {
+							state[x][y].share[i] = ROL64(state[x][y].share[i], r);
+						}
+			#endif
         }
     }
 }
