@@ -342,7 +342,7 @@ void masked_rho(masked_uint64_t state[5][5]) {
 						state[x][y].share[1] = ROL64(state[x][y].share[1], r);
 						state[x][y].share[2] = ROL64(state[x][y].share[2], r);
 						state[x][y].share[3] = ROL64(state[x][y].share[3], r);
-						state[x][y].share[3] = ROL64(state[x][y].share[4], r);
+						state[x][y].share[4] = ROL64(state[x][y].share[4], r);
 			#else
 						for (int i = 0; i < MASKING_N; i++) {
 							state[x][y].share[i] = ROL64(state[x][y].share[i], r);
